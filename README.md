@@ -7,8 +7,10 @@ Scripts to export GitHub issues to json or csv. One day will script over beta pr
 
 usage: export-labelled-gh-issues.py [-h] [-r] [-l LABEL] filetype repos [repos ...]
 
-Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos. GitHub provides a large number of fields on an issue; by default, this script filters those to a small number of useful
-ones. Use the raw flag to see all available fields. Optionally, provide a label to get issues only with that label.
+Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos.
+GitHub provides a large number of fields on an issue; by default, this script filters those
+to a small number of useful ones. Use the raw flag to see all available fields. Optionally,
+provide a label to get issues only with that label.
 
 positional arguments:
   filetype              can be one of `json` or `csv`
