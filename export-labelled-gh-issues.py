@@ -10,8 +10,6 @@ import logging
 import os
 import sys
 import argparse
-from collections import defaultdict
-from dataclasses import asdict, dataclass
 from datetime import datetime
 
 import github as gh_api
@@ -23,51 +21,37 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
 
-def main(action, repos):
+def main(filetype, raw, repos, label):
     """
     Script entrypoint
     """
     gh_headers = get_github_headers()
 
     stamp = datetime.utcnow().isoformat()[0:19]
-    export_filename = f"output/{action}-{stamp}.json".format(action=action, stamp=stamp)
+    repo_names = ','.join(repos)
+    export_filename = f"output/{stamp}-{repo_names}.{filetype}"
 
-    if action == "export_raw":
+    if filetype == "json":
         with open(export_filename, "w") as export_file:
             export_file.write("# Export from: {stamp}\n# Repos: {repos}".format(
                 stamp=stamp, repos=repos
             ))
 
+    is_csv = filetype == 'csv'
+    get_and_filter_issues(repos, gh_headers, export_filename, raw, label=label, csv=is_csv)
 
-        get_and_filter_issues(repos, gh_headers, export_filename, export_type="raw", label="decoupling")
-
-    elif action == "export_filtered":
-        with open(export_filename, "w") as export_file:
-            export_file.write("# Export from: {stamp}\n# Repos: {repos}".format(
-                stamp=stamp, repos=repos
-            ))
-
-
-        get_and_filter_issues(repos, gh_headers, export_filename, export_type="filtered", label="decoupling")
-
-    elif action == "csv_filtered":
-        export_filename = f"output/{action}-{stamp}.csv".format(action=action, stamp=stamp)
-        get_and_filter_issues(repos, gh_headers, export_filename, export_type="filtered", label="decoupling", csv=True)
-
-    else:
-        print("Not sure how we got here, try again")
         
-def get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="filtered", label=None, csv=False):
+def get_and_filter_issues(all_repos, gh_headers, export_filename, raw, label=None, csv=False):
     """
     Get all issues that are not PRs from the specified repo.
     * export_filename: the name of the file you'd like your data exported to
-    * export_type: Either filtered (applies hardcoded filters, for now), or raw
+    * raw: if True, returns all json fields. Otherwise returns a pre-determined filtered list.
     * label: only return issues with the given label.
     * csv: if True, returns a flattened CSV instead of a json; without filtering, this may not work.
     """
     all_issues = []
     for repo in all_repos:
-        print("grabbing repo {0}".format(repo))
+        LOG.info("grabbing repo {0}".format(repo))
         url = "https://api.github.com/repos/openedx/{repo}/issues".format(repo=repo)
         for issue in requests.get(url, headers=gh_headers).json():
             all_issues.append(issue)
@@ -94,7 +78,7 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="f
             if not match:
                 continue
 
-        if export_type == "filtered":
+        if not raw:
             # Extract the fields we need
             new_issue = {}
             for k in keys_to_save:
@@ -141,7 +125,7 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="f
         with open(export_filename, "a") as export_file:
             print(json.dumps(saved_issues, indent=4), file=export_file)
 
-    print("Successfully wrote issues to: {0}".format(export_filename))
+    LOG.info("Successfully wrote issues to: {0}".format(export_filename))
 
 def get_github_headers() -> dict:
     """
@@ -152,22 +136,34 @@ def get_github_headers() -> dict:
     gh_client = gh_api.Github(gh_token)
     LOG.info(" Authenticated.")
 
-    # set up HTTP headers because PyGithub isn't able to determine team permissions                                                                     # on a repo in bulk.                                                                                                                             
+    # set up HTTP headers because PyGithub isn't able to determine team permissions on a repo in bulk.
     gh_headers = {"AUTHORIZATION": f"token {gh_token}"}
     return gh_headers
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos.\nBy default, filtering filters all issues on the label `decoupling`.")
+    parser = argparse.ArgumentParser(
+        description="Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos.\
+                     GitHub provides a large number of fields on an issue; by default, this script filters those to\
+                     a small number of useful ones. Use the raw flag to see all available fields.\
+                     Optionally, provide a label to get issues only with that label.")
 
-    parser.add_argument('action',
-                        help="can be one of `export_raw` (export all repo issues to json),`export_filtered` (export filtered issues to json), and `csv_filtered` (export filtered issues to csv)",
+    parser.add_argument('filetype',
+                        help="can be one of `json` or `csv`",
                         default='export_filtered')
+
+    parser.add_argument('-r', '--raw',
+                        help="If flagged, issues will be exported with all fields present.",
+                        action='store_true')
 
     parser.add_argument('repos',
                         help="One or more openedx repos to grab issues from",
                         nargs='+')
 
-    args = parser.parse_args()
-    main(args.action, args.repos)
+    parser.add_argument('-l', '--label',
+                        help='Only return GitHub issues with this label.')
 
+
+    args = parser.parse_args()
+
+    main(args.filetype, args.raw, args.repos, args.label)
