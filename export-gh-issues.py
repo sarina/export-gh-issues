@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Usage:
-    python -m export-labelled-gh-issues.py -h
+    python -m export-gh-issues.py -h
 """
 
 # pylint: disable=unspecified-encoding

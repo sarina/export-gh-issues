@@ -8,8 +8,6 @@ this is easier than gh issues
 
 * move decoupling repo specific logic out into its own script
 
-* rename script to just export-gh-issues
-
 * add tests
 
 * run tests

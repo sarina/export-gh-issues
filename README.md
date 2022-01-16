@@ -2,10 +2,10 @@
 Scripts to export GitHub issues to json or csv. One day will script over beta projects (when the API is ready).
 
 ```
-> python -m export-labelled-gh-issues.py -h
+> python -m export-gh-issues.py -h
 
 
-usage: export-labelled-gh-issues.py [-h] [-r] [-l LABEL] filetype repos [repos ...]
+usage: export-gh-issues.py [-h] [-r] [-l LABEL] filetype repos [repos ...]
 
 Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos.
 GitHub provides a large number of fields on an issue; by default, this script filters those
@@ -29,8 +29,4 @@ As mentioned above, by default the script filters the raw GitHub-returned json t
 
 Additionally, the following two fields are returned as nested json (if json output is chosen) or as a flattened list (if csv output is chosen): "labels" and "assignees"
 
-See "example_output/" folder for some sample outputs.
-
-### Remaining TODOs:
-
-* The script could be made more flexible by forcing users to specify ORG/REPO. However I'm lazy and my use case is only in one org right now.
+See "sample-output/" folder for some sample outputs.
