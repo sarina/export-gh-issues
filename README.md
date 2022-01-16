@@ -8,12 +8,16 @@ Usage:
 python -m export-labelled-gh-issues.py -h
 ```
 
-Use this script to collect issues (that aren't PRs) from one or more GitHub repos.
-The first script argument can be one of `export_raw`,`export_filtered`, and `csv_filtered`.
-Currently, the 'filtered' option is hardcoded to filter on the label 'decoupling'.
-"You may then list the name of one or more openedx repos (just the repo name). The openedx org is hardcoded.
-Example usage: `python -m export-labelled-gh-issues.py export_filtered tcril-engineering`
-Resulting .json or .csv files go to the output/ folder.
+Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos. By default, filtering filters all issues on the label `decoupling`.
+
+positional arguments:
+  action      can be one of `export_raw` (export all repo issues to json),`export_filtered` (export filtered issues to json), and `csv_filtered` (export filtered issues to csv)
+  repos       One or more openedx repos to grab issues from
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
 
 Remaining TODOs:
 
