@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import sys
+import argparse
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -22,52 +23,39 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
 
-def main():
+def main(action, repos):
     """
     Script entrypoint
     """
-    if sys.argv[1] in ["-h", "--help"]:
-        print("Use this script to collect issues (that aren't PRs) from one or more GitHub repos")
-        print("The first script argument can be one of `export_raw`,`export_filtered`, and `csv_filtered`")
-        print("Currently, the 'filtered' option is hardcoded to filter on the label 'decoupling'")
-        print("You may then list the name of one or more openedx repos (just the repo name)")
-        print("Example usage: `python -m export-labelled-gh-issues.py export_filtered tcril-engineering`")
-        print("Resulting .json or .csv files go to the output/ folder")
-        return
-        
-    assert len(sys.argv) > 2, "Invocation must specify an action and one or more repos"
-    command = sys.argv[1]
     gh_headers = get_github_headers()
 
     stamp = datetime.utcnow().isoformat()[0:19]
-    export_filename = f"output/{command}-{stamp}.json".format(command=command, stamp=stamp)
+    export_filename = f"output/{action}-{stamp}.json".format(action=action, stamp=stamp)
 
-    all_repos = sys.argv[2:]
-    
-    if sys.argv[1] == "export_raw":
+    if action == "export_raw":
         with open(export_filename, "w") as export_file:
             export_file.write("# Export from: {stamp}\n# Repos: {repos}".format(
-                stamp=stamp, repos=all_repos
+                stamp=stamp, repos=repos
             ))
 
 
-        get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="raw", label="decoupling")
+        get_and_filter_issues(repos, gh_headers, export_filename, export_type="raw", label="decoupling")
 
-    elif sys.argv[1] == "export_filtered":
+    elif action == "export_filtered":
         with open(export_filename, "w") as export_file:
             export_file.write("# Export from: {stamp}\n# Repos: {repos}".format(
-                stamp=stamp, repos=sys.argv[2:]
+                stamp=stamp, repos=repos
             ))
 
 
-        get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="filtered", label="decoupling")
+        get_and_filter_issues(repos, gh_headers, export_filename, export_type="filtered", label="decoupling")
 
-    elif sys.argv[1] == "csv_filtered":
-        export_filename = f"output/{command}-{stamp}.csv".format(command=command, stamp=stamp)
-        get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="filtered", label="decoupling", csv=True)
+    elif action == "csv_filtered":
+        export_filename = f"output/{action}-{stamp}.csv".format(action=action, stamp=stamp)
+        get_and_filter_issues(repos, gh_headers, export_filename, export_type="filtered", label="decoupling", csv=True)
 
     else:
-        print("Unrecognized script option `{0}`. Valid options are: `export_raw`,`export_filtered`, and `csv_filtered`.".format(sys.argv[1]))
+        print("Not sure how we got here, try again")
         
 def get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="filtered", label=None, csv=False):
     """
@@ -147,17 +135,17 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, export_type="f
         saved_issues.append(issue)
     if csv:
         issue_dataframe = json_normalize(saved_issues)
-   
         issue_dataframe.to_csv(export_filename, index=False)
 
     else:
         with open(export_filename, "a") as export_file:
             print(json.dumps(saved_issues, indent=4), file=export_file)
 
+    print("Successfully wrote issues to: {0}".format(export_filename))
 
 def get_github_headers() -> dict:
     """
-    Load GH persoal access token from file.
+    Load GH personal access token from file.
     """
     gh_token = os.environ["GITHUB_TOKEN"]
     LOG.info(" Authenticating.")
@@ -170,4 +158,16 @@ def get_github_headers() -> dict:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Use this script to collect issues (that aren't PRs) from one or more openedx GitHub repos.\nBy default, filtering filters all issues on the label `decoupling`.")
+
+    parser.add_argument('action',
+                        help="can be one of `export_raw` (export all repo issues to json),`export_filtered` (export filtered issues to json), and `csv_filtered` (export filtered issues to csv)",
+                        default='export_filtered')
+
+    parser.add_argument('repos',
+                        help="One or more openedx repos to grab issues from",
+                        nargs='+')
+
+    args = parser.parse_args()
+    main(args.action, args.repos)
+
