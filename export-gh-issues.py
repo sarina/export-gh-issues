@@ -31,12 +31,6 @@ def main(filetype, raw, repos, label):
     repo_names = ','.join(repos)
     export_filename = f"output/{stamp}-{repo_names}.{filetype}"
 
-    if filetype == "json":
-        with open(export_filename, "w") as export_file:
-            export_file.write("# Export from: {stamp}\n# Repos: {repos}".format(
-                stamp=stamp, repos=repos
-            ))
-
     is_csv = filetype == 'csv'
     get_and_filter_issues(repos, gh_headers, export_filename, raw, label=label, csv=is_csv)
 
