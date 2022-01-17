@@ -166,4 +166,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # validation
+    if args.filetype not in ['csv', 'json']:
+        sys.exit("Filetype must be one of: `csv`, `json`")
+
+    # raw output is untested with raw option... but allow people to try anyway
+    if args.raw and args.filetype == 'csv':
+        LOG.warning('filetype=csv and -r option unsupported')
+        proceed = input("Raw output is untested with CSV option (json nesting level may be too deep). Proceed anyway? [y/n]: ")
+        if proceed != 'y':
+            LOG.info('Exiting program, not proceeding with raw output/csv')
+            sys.exit()
+
     main(args.filetype, args.raw, args.repos, args.label)
