@@ -34,7 +34,7 @@ def main(filetype, raw, repos, label):
     is_csv = filetype == 'csv'
     get_and_filter_issues(repos, gh_headers, export_filename, raw, label=label, csv=is_csv)
 
-        
+
 def get_and_filter_issues(all_repos, gh_headers, export_filename, raw, label=None, csv=False):
     """
     Get all issues that are not PRs from the specified repo.
@@ -47,8 +47,8 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, raw, label=Non
     for repo in all_repos:
         LOG.info("grabbing repo {0}".format(repo))
         url = "https://api.github.com/repos/openedx/{repo}/issues".format(repo=repo)
-        for issue in requests.get(url, headers=gh_headers).json():
-            all_issues.append(issue)
+        all_issues = all_issues + requests.get(url, headers=gh_headers).json()
+
     saved_issues = []
 
     # Variables needed for doing hard-coded filtering of the issue to only the specified fields
@@ -65,9 +65,16 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, raw, label=Non
         if 'pull_request' in issue:
             continue
 
+        # replace api url with github url
+        issue['url'] = issue['url'].replace('api.', '')
+        issue['url'] = issue['url'].replace('repos/', '')
+
         # Filter out issues that don't have the given label, but return all issues in the Decoupling project
         if label and "decoupling" not in issue["url"]:
-            # filter on those with only the label, but skip decoupling project
+            # filter on those with only the label
+            # issues have a key `label` with a list of multiple labels of the form:
+            # "label": [ {"name": "label1name"}, {"name": "label2name"} ]
+            # note the inner dicts have, in addition to name, keys: id, node_id, url, color, default, description
             match = [1 for item in issue["labels"] if item['name']==label] != []
             if not match:
                 continue
@@ -120,6 +127,7 @@ def get_and_filter_issues(all_repos, gh_headers, export_filename, raw, label=Non
             print(json.dumps(saved_issues, indent=4), file=export_file)
 
     LOG.info("Successfully wrote issues to: {0}".format(export_filename))
+
 
 def get_github_headers() -> dict:
     """
